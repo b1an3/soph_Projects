@@ -1,0 +1,221 @@
+/*
+  bit camp last project
+  to run u can visit here https://codehs.com/share/id/Write_the_Code!_HCQE1a/run
+  Game has same bug (intentionally) as mario :))) Enjoy <3
+*/
+
+var RADIUS = 12;
+var BLOCK_WIDTH = 2*RADIUS;
+var PLAYER_OFFSET = getWidth()/3;
+var SUN_OFFSET = 20;
+var PLAYER_COLOR = Color.red;
+var SUN_RADIUS = 80;
+var DELAY = 20;
+var DISTANCE_BTW_BLOCKS = getWidth()/2;
+var MIN_HEIGHT = getHeight()/3; 
+
+var points = 0;
+// true for day false for night
+var dayOrNight = true;
+var speed = getWidth()/150;
+var AVILABE_SPACE = 6*RADIUS;
+
+var playerObj;
+var eye;
+var wing;
+var pupil;
+var tail;
+
+var sun;
+var background;
+
+function start(){
+    game();
+}
+
+// game is wraped in game function for further purposes
+function game(){
+    drawGame();
+    gameAnimation();
+    playerAnimation();
+}
+
+// if players endpoints hit object game should end
+function endGame(topRect, botRect){
+    var x1 = playerObj.getX() + RADIUS;
+    var x2 = playerObj.getX() - RADIUS;
+    var y1 = playerObj.getY() - RADIUS;
+    var y2 = playerObj.getY() + RADIUS;
+    if(getElementAt(x1, y1) == topRect || getElementAt(x1, y1) == botRect
+        || getElementAt(x1, y2) == topRect || getElementAt(x1, y2) == botRect
+        || getElementAt(x2, y1) == topRect || getElementAt(x2, y1) == botRect
+        || getElementAt(x2, y2) == topRect || getElementAt(x2, y2) == botRect 
+    ){
+        removeAll();
+        displayEndMessage(points);
+    }
+}
+
+//end message
+function displayEndMessage(points){
+    var txt = new Text("game has ended with: " + points);
+    txt.setPosition(getWidth()/2 - txt.getWidth()/2, getHeight()/2 + txt.getHeight()/2);
+    add(txt);
+}
+
+// draws block and passes it to the setTimer function
+// for draw it needs randomly generated height and start location of block
+// set timer has function moveBlock with 2 parameters top and bottom block
+function initBlock(height, stx){
+    var topRect = new Rectangle(BLOCK_WIDTH, height);
+    topRect.setColor(Color.green);
+    topRect.setPosition(stx, 0);
+    add(topRect);
+    
+    var botRect = new Rectangle(BLOCK_WIDTH, getHeight() - height - 8*RADIUS);
+    botRect.setColor(Color.green);
+    botRect.setPosition(stx,  height + 8*RADIUS);
+    add(botRect);
+    
+    // callback function with parameter to move given objects
+    setTimer(function(){ moveBlock(topRect, botRect); }, DELAY);
+    
+}
+
+// needs 2 parameters as an input top and bottom rect
+// moves these blocks with global speed var value
+// if given elements pass canvas they should be deleted and redrawn at the begining of the canvas
+// for game to be more interesting speed will be increased by 0.1 till it reaches 6
+// (also points) after object is deleted 
+// for each 10th passed obstacle background changes
+function moveBlock(topRect, botRect){
+    endGame(topRect, botRect);
+    topRect.move(-speed, 0);
+    botRect.move(-speed, 0);
+    
+    if(getElementAt(0, 0) == topRect){
+        stopTimer(moveBlock);
+        remove(topRect);
+        remove(botRect);
+        if(speed < 6.5){
+            speed += 0.1;
+        }
+        points++;
+        
+        if(points % 10 == 0){
+            dayOrNight = !dayOrNight;
+            setDayOrNight();
+        } 
+        
+        initBlock(getH(), getWidth());
+    }
+}
+
+
+// init 2 block to start
+function gameAnimation(){
+    initBlock(getH(), getWidth());
+    initBlock(getH(), getWidth() + DISTANCE_BTW_BLOCKS);
+}
+
+// returns height of top rect range MIN_HEIGHT <-> getHeight() - AVILABE_SPACE - MIN_HEIGHT
+function getH(){
+    var result = Randomizer.nextInt(MIN_HEIGHT, getHeight() - AVILABE_SPACE - MIN_HEIGHT);
+    return result;
+}
+
+//player and background part->
+
+// draws background with dayOrNight boolean
+function setDayOrNight(){
+    if(dayOrNight){
+        background.setColor("#FFFCC9");
+        sun.setColor(Color.yellow);
+    }else{
+        background.setColor("#2e4482");
+        sun.setColor(Color.grey);
+    }
+}
+
+//init player 
+function drawPlayer(x, y){
+    playerObj = new Circle(RADIUS);
+    playerObj.setColor(PLAYER_COLOR);
+    playerObj.setPosition(x, y);
+    add(playerObj);
+    
+    eye = new Circle(RADIUS/4);
+    eye.setColor(Color.white);
+    eye.setPosition(x + RADIUS/2, y - RADIUS/2);
+    add(eye);
+    
+    pupil = new Circle(RADIUS/8);
+    pupil.setColor(Color.black);
+    pupil.setPosition(x + 3*RADIUS/4 - pupil.getRadius(), y - 3*RADIUS/4 + pupil.getRadius());
+    add(pupil);
+    
+    wing = new Arc(RADIUS/2, 180, 0, 0);
+    wing.setPosition(x, y);
+    wing.setColor("#ffff00");
+    add(wing);
+    
+    tail = new Arc(RADIUS/4, 270, 90, 0);
+    tail.setPosition(x - RADIUS - RADIUS/4, y);
+    tail.setColor("#ffff00");
+    add(tail);
+}
+
+// player movement
+function playerAnimation(){
+    keyDownMethod(jump);
+    setTimer(gravity, DELAY);
+}
+
+// free fall
+function gravity(){
+    playerObj.move(0, 2);
+    eye.move(0, 2);
+    wing.move(0, 2);
+    pupil.move(0, 2);
+    tail.move(0, 2);
+}
+
+// jump on space
+function jump(e){
+    if (e.keyCode == Keyboard.letter('J')) {
+		playerObj.move(0, -getHeight()/10);
+		eye.move(0, -getHeight()/10);
+        wing.move(0, -getHeight()/10);
+        pupil.move(0, -getHeight()/10);
+        tail.move(0, -getHeight()/10);
+	}
+}
+
+// draws game objects
+function drawGame(){
+    decor();
+    drawPlayer(PLAYER_OFFSET, getHeight()/2);
+}
+
+//call background drawing functions
+function decor(){
+    theme();
+    drawSun();
+}
+
+// background during day for init
+function theme(){
+    background = new Rectangle(getWidth(), getHeight());
+    background.setColor("#FFFCC9");
+    background.setPosition(0, 0);
+    add(background);
+}
+
+// sun during day for init
+function drawSun(){
+    sun = new Circle(SUN_RADIUS);
+    sun.setColor(Color.yellow);
+    sun.setPosition(getWidth()/2, SUN_OFFSET + SUN_RADIUS);
+    add(sun);
+    
+}
